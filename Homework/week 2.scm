@@ -65,7 +65,13 @@
 ;; Your task is to find a way to express the fact procedure in a Scheme without any way to
 ;; define global names.
 
-
+((lambda (n)
+   (let ((f (lambda (func x acc)
+	      (if (= 0 x)
+		  acc
+		  (func func (- x 1) (* x acc))))))
+     (f f 5 1)))
+ 5)
 
 ;; Unix feature of the week: pine, mail, firefox
 ;; Emacs feature of the week: M-x info, C-x u (undo)
