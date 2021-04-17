@@ -10,6 +10,160 @@
 ;; 1. Abelson & Sussman, exercises 1.31(a), 1.32(a), 1.33, 1.40, 1.41, 1.43, 1.46
 ;; (Pay attention to footnote 51; you’ll need to know the ideas in these exercises later in the
 ;; semester.)
+
+
+;; 1.30
+(define (sum term a next b)
+  (define (iter a result)
+    (if (> a b)
+     result
+     (iter (next a) (+ (term a) result))))
+  (iter a 0))
+
+(define (inc n) (+ n 1))
+(define (sum-cubes a b)
+  (sum cube a inc b))
+(sum-cubes 1 10)
+;; 3025
+
+
+;; 1.31
+(define (product term a next b)
+  (define (iter a result)
+    (if (> a b)
+     result
+     (iter (next a) (* (term a) result))))
+  (iter a 1))
+
+(define (product term a next b)
+  (if (> a b)
+      1
+      (* (term a) (product term (next a) next b))))
+
+(define (factorial a b)
+  (product (lambda (x) x) a inc b))
+(factorial 1 10)
+
+(define (approx_pi a b)
+  (* 4 (product
+   (lambda (x)
+     (if (even? x)
+	 (/ x (+ x 1))
+	 (/ (+ x 1) x)))
+   a
+   inc
+   b)))
+(approx_pi 2.0 1000.0)
+
+;; 1.32
+(define (accumulate combiner null-value term a next b)
+  (if (> a b)
+      null-value
+      (combiner (term a) (accumulate combiner null-value term (next a) next b))))
+(define (product term a next b)
+  (accumulate * 1 term a next b))
+
+(define (sum term a next b)
+  (accumulate + 0 term a next b))
+
+(approx_pi 2.0 1000.0)
+(sum-cubes 1 10)
+
+;; 1.33
+(define (filtered-accumulate filter combiner null-value term a next b)
+  (if (> a b)
+      null-value
+      (if (filter a)
+	  (combiner (term a) (filtered-accumulate filter combiner null-value  term (next a) next b))
+	  (filtered-accumulate filter combiner null-value term (next a) next b))))
+  
+(define (product term a next b)
+  (filtered-accumulate even? * 1 term a next b))
+
+(define (sum term a next b)
+  (filtered-accumulate even? + 0 term a next b))
+
+(approx_pi 2.0 1000.0)
+(sum-cubes 1 10)
+
+;; 1.40
+
+(define tolerance 0.00001)
+(define (fixed-point f first-guess)
+  (define (close-enough? v1 v2)
+    (< (abs (- v1 v2))
+       tolerance))
+  (define (try guess)
+    (let ((next (f guess)))
+      (if (close-enough? guess next)
+	  next
+	  (try next))))
+  (try first-guess))
+
+(define dx 0.00001)
+(define (deriv g)
+  (lambda (x) (/ (- (g (+ x dx)) (g x)) dx)))
+(define (cube x) (* x x x))
+((deriv cube) 5)
+
+(define (newton-transform g)
+  (lambda (x) (- x (/ (g x) ((deriv g) x)))))
+
+(define (newtons-method g guess)
+  (fixed-point (newton-transform g) guess))
+(define (sqrt x)
+  (newtons-method
+   (lambda (y) (- (square y) x)) 1.0))
+(sqrt 9)
+
+(define (cubic a b c)
+  (lambda (x) (+ (* x x x) (* a x x) (* b x) c)))
+(newtons-method (cubic 1 1 1) 1)
+
+;; 1.41
+(define (double f)
+  (lambda (n) (f (f n))))
+(((double (double double)) inc) 5)
+(((double double) (double inc)) 5)
+
+;; 1.43
+(define (repeated f n)
+  (lambda (x)
+    (if (> n 0)
+	((repeated f (- n 1)) (f x))
+	x
+	)))
+((repeated square 2) 5)
+;; 625
+
+;; 1.46
+(define (iterative-improve good-enough? improve)
+  (define (iter guess)
+    (if (good-enough? guess)
+	guess
+        (iter (improve guess))))
+  (lambda (guess) (iter guess)))
+     
+(define (sqrt x)
+  (define (improve guess)
+    (/ (+ guess (/ x guess)) 2))
+  (define (good-enough? guess)
+    (< (abs (- (square guess) x)) 0.0001))
+  ((iterative-improve good-enough? improve) 1.0))
+(sqrt 9)
+
+   
+(define (fixed-point f first-guess)
+  (define (close-enough? v1 v2)
+    (< (abs (- v1 v2))
+       tolerance))
+  (define (try guess)
+    (let ((next (f guess)))
+      (if (close-enough? guess next)
+	  next
+	  (try next))))
+  (try first-guess))
+
 ;; 2. Last week you wrote procedures squares, that squared each number in its argument
 ;; sentence, and saw pigl-sent, that pigled each word in its argument sentence. Generalize
 ;; this pattern to create a higher-order procedure called every that applies an arbitrary
@@ -72,6 +226,16 @@
 		  (func func (- x 1) (* x acc))))))
      (f f 5 1)))
  5)
+
+(((lambda (f)
+    (lambda (n) (f f n)))
+  (lambda (fun x)
+    (if (equal? 0 x)
+	1
+	(* x (fun fun (- x 1))))))
+ 5)
+
+
 
 ;; Unix feature of the week: pine, mail, firefox
 ;; Emacs feature of the week: M-x info, C-x u (undo)
