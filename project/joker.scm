@@ -39,7 +39,7 @@
 (define (make-ordered-deck)
   (define (make-suit s)
     (every (lambda (rank) (word rank s)) '(A 2 3 4 5 6 7 8 9 10 J Q K)) )
-  (se (make-suit 'H) (make-suit 'S) (make-suit 'D) (make-suit 'C)) )
+  (se (make-suit 'H) (make-suit 'S) (make-suit 'D) (make-suit 'C) '(JK JK)))
 
 (define (make-deck)
   (define (shuffle deck size)
@@ -50,12 +50,13 @@
     (if (= size 0)
 	deck
     	(move-card deck '() (random size)) ))
-  (shuffle (make-ordered-deck) 52) )
+  (shuffle (make-ordered-deck) 54) )
 
 (define (max-card-value? card)
   (cond
    ((number? (first card)) (first card))
-   ((equal? 'a (first card)) 11)
+   ((or (equal? 'a (first card)) (equal? 'JK card))
+    11)
    (else 10)))
 
 (define (best-total hand)
@@ -65,20 +66,33 @@
 	(if (equal? 'a (first (first hand)))
 	    (+ 1 (number-of-aces? (bf hand)))
 	    (number-of-aces? (bf hand)))))
+  (define (number-of-jokers? hand)
+    (if (empty? hand)
+	0
+	(if (equal? 'JK (first hand))
+	    (+ 1 (number-of-jokers? (bf hand)))
+	    (number-of-jokers? (bf hand)))))
   (define (max-value? hand)
     (if (empty? hand)
 	0
 	(+ (max-card-value? (first hand)) (max-value? (bf hand)))))
-  (define (iter value aces)
-    (if (and (> value 21) (> aces 0))
-	(iter (- value 10) (- aces 1))
-	value))
-  (iter (max-value? hand) (number-of-aces? hand)))
+  (define (iter value aces jokers)
+    (cond
+     ((and (> value 31) (> aces 0)) (iter (- value 10) (- aces 1) jokers))
+     ((and (< value 31) (> value 21) (> jokers 0)) 21)
+     ((and (> value 21) (> jokers 0)) (iter (- value 10) aces (- jokers 1)))
+     ((and (> value 21) (> aces 0)) (iter (- value 10) (- aces 1) jokers))
+     (else value)))
+
+  (iter (max-value? hand) (number-of-aces? hand) (number-of-jokers? hand)))
 (best-total '(ah 3h))
 (best-total '(ad 8s))
 (best-total '(ad 8s 5h))
 (best-total '(ad as 9h))
 (best-total '(7d 7s 9h))
+
+(best-total '(7d 7s JK))
+(best-total '(7d JK))
 
 
 
